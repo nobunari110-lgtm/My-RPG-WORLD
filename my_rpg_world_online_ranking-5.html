@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>MY RPG WORLD</title>
+<style>
+:root{color-scheme:dark;--bg:#101522;--panel:#1b2540;--gold:#ffd76a;--cyan:#71e5ff;--pink:#ff77aa}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#fff;touch-action:none}
+#wrap{position:relative;width:100vw;height:100dvh;display:grid;place-items:center;background:radial-gradient(ellipse at center,#202c49,#0c101b)}
+#game{position:relative;width:min(100vw,177.78vh);height:min(100dvh,56.25vw);aspect-ratio:16/9;overflow:hidden;border:1px solid #46577e;background:#121a2b;box-shadow:0 0 35px #0008}
+#game:fullscreen{width:100vw;height:100dvh;max-width:none;max-height:none;aspect-ratio:auto;border:0;box-shadow:none}
+#game:fullscreen canvas{width:100%;height:100%}
+#game:fullscreen #topbuttons{top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right))}
+#fullscreenBtn{min-width:42px}
+canvas{display:block;width:100%;height:100%}
+#hud{position:absolute;inset:0;pointer-events:none;font-size:clamp(10px,1.25vw,15px)}
+.hudbox{position:absolute;background:#0b1022d9;border:1px solid #4b5c84;border-radius:10px;padding:7px 10px;backdrop-filter:blur(4px)}
+#stats{left:1.2%;top:1.5%;min-width:180px;max-width:40%;line-height:1.5}
+.bar{height:7px;background:#30384d;border-radius:8px;overflow:hidden;margin:2px 0 4px}.fill{height:100%;width:100%;transition:width .12s}
+#money{right:1.2%;top:1.5%;color:var(--gold);font-weight:800}
+#topbuttons{position:absolute;right:1.2%;top:8%;display:flex;gap:6px;pointer-events:auto}
+button{font:inherit;color:#fff;border:1px solid #6076a4;border-radius:9px;background:#263656;padding:8px 11px;cursor:pointer;box-shadow:0 2px 0 #101522;touch-action:manipulation}
+button:active{transform:translateY(1px)}button:disabled{opacity:.4;cursor:default}
+#mobile{position:absolute;inset:0;pointer-events:none;display:none}
+#stick{position:absolute;left:3%;bottom:5%;width:100px;height:100px;border-radius:50%;background:#b6d4ff20;border:2px solid #b6d4ff70;pointer-events:auto}
+#nub{position:absolute;left:29px;top:29px;width:38px;height:38px;border-radius:50%;background:#b6d4ff8a;border:1px solid #fff9}
+#overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#050914c9;pointer-events:auto;padding:12px}
+.panel{width:min(92%,620px);max-height:92%;overflow:auto;background:linear-gradient(145deg,#202d4b,#121a2d);border:1px solid #7185b5;border-radius:18px;padding:clamp(14px,2.4vw,26px);box-shadow:0 16px 50px #0009}
+h1{font-size:clamp(22px,3.6vw,38px);margin:0 0 4px;color:var(--gold)}h2{margin:0 0 12px;font-size:clamp(18px,2.4vw,24px)}p{line-height:1.55;color:#d5def3;margin:8px 0 14px}
+#choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px}
+.choice{text-align:left;min-height:100px;padding:12px;border-radius:12px;background:#263655;border:1px solid #536a9a}
+.choice strong{display:block;color:var(--gold);font-size:16px;margin-bottom:5px}.choice small{color:#d5def3;line-height:1.4}
+.panelrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.panelrow button{flex:1}
+#netstatus{position:absolute;left:50%;top:2%;transform:translateX(-50%);background:#10182bd9;border:1px solid #7185b5;border-radius:9px;padding:5px 9px;font-size:12px;display:none;pointer-events:none;white-space:nowrap}
+.lobbyinput{width:100%;padding:10px;border-radius:9px;border:1px solid #6076a4;background:#10182b;color:#fff;font:inherit;margin:4px 0 10px;text-transform:uppercase}
+#toast{position:absolute;top:20%;left:50%;transform:translateX(-50%);background:#111a2bdf;border:1px solid #7185b5;border-radius:12px;padding:8px 14px;display:none;pointer-events:none;text-align:center;max-width:80%}
+#bossbar{position:absolute;left:20%;right:20%;top:1.5%;display:none;text-align:center;font-size:12px;text-shadow:0 2px 3px #000}
+#bossbar .bar{height:10px;border:1px solid #e8a5ff}
+@media(max-width:700px){#stats{min-width:142px;padding:5px 7px}#topbuttons{top:11%;right:1%;gap:3px}#topbuttons button{padding:6px 7px;font-size:11px}#mobile{display:block}#stick{width:82px;height:82px}#nub{left:23px;top:23px;width:32px;height:32px}#money{top:1.5%;right:1%;padding:5px 7px}#bossbar{left:26%;right:26%;top:14%}}
+@media(max-width:430px){#stats{max-width:48%}#topbuttons{top:12%}}
+
+#overlay.title-overlay{background:radial-gradient(ellipse at 50% 20%,#253d6ff0,#070b16f5 78%)}
+#overlay.title-overlay .panel{width:min(94%,700px);text-align:center;border:1px solid #7b8fff;background:linear-gradient(150deg,#1c2e50f7,#101727fa 65%,#251c43f7);box-shadow:0 0 0 4px #8c9fff12,0 0 45px #527dff35,0 18px 60px #000b;padding:clamp(18px,4vw,38px)}
+.title-hero{position:relative;padding:12px 8px 18px;margin:-4px 0 12px;border-radius:14px;background:linear-gradient(120deg,#2a4e7c66,#7a4caa33,#18294b66);border:1px solid #91a9ff40}
+.title-mark{font-size:clamp(36px,8vw,68px);line-height:1.15;filter:drop-shadow(0 0 14px #70d9ff70);margin-bottom:6px}
+.title-name{font-size:clamp(27px,5.8vw,48px);font-weight:950;letter-spacing:.04em;line-height:1.12;color:#fff;text-shadow:0 0 10px #6b9dff,0 3px 0 #233963;margin:0 0 8px}
+.title-sub{font-size:clamp(12px,2vw,16px);letter-spacing:.12em;color:#9deaff;margin:0 0 8px}
+.title-tags{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:12px 0 2px}.title-tags span{font-size:12px;padding:5px 9px;border-radius:999px;background:#1b2c49;border:1px solid #6582b7;color:#d9e7ff}
+#overlay.title-overlay .panelrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:18px}
+#overlay.title-overlay .panelrow button{min-height:48px;font-weight:750;background:linear-gradient(180deg,#334b78,#243351);border-color:#8da7e0}
+#overlay.title-overlay .panelrow button:first-child{background:linear-gradient(180deg,#2c9fcb,#2462a5);border-color:#a3efff;box-shadow:0 0 18px #31a8ff35}
+@media(max-width:520px){#overlay.title-overlay .panelrow{grid-template-columns:1fr}#overlay.title-overlay .panel{width:96%;padding:15px}}
+
+</style>
+</head>
+<body>
+<div id="wrap"><div id="game">
+<canvas id="cv" width="960" height="540" aria-label="MY RPG WORLD game"></canvas>
+<div id="hud">
+ <div id="stats" class="hudbox">
+  <div><b>MY RPG WORLD</b>　Lv.<span id="lv">1</span></div><div>敵撃破 <span id="kills">0</span>体</div>
+  <div class="bar"><div id="hpfill" class="fill" style="background:#ff6483"></div></div>
+  <div>HP <span id="hp">100</span>/<span id="maxhp">100</span></div>
+  <div class="bar"><div id="xpfill" class="fill" style="background:#67e8a5;width:0%"></div></div>
+  <div>EXP <span id="xp">0</span>/<span id="nextxp">30</span></div>
+ </div>
+ <div id="bossbar"><b>👑 BOSS</b><div class="bar"><div id="bossfill" class="fill" style="background:#d86bff"></div></div></div>
+ <div id="topbuttons"><button id="fullscreenBtn" aria-label="全画面表示">⛶ 全画面</button><button id="pauseBtn">Ⅱ</button></div>
+
+ <div id="mobile"><div id="stick"><div id="nub"></div></div></div>
+ <div id="netstatus"></div><div id="toast"></div>
+</div>
+<div id="overlay"><div class="panel"><div id="panelcontent"></div></div></div>
+</div></div>
+<script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id), cv=$('cv'),ctx=cv.getContext('2d');
+const W=960,H=540;
+let mode='title',last=0,time=0,spawnT=0,toastT=0,bossSpawned=false,levelPending=0,killCount=0;
+let keys={},joy={x:0,y:0},effects=[],enemies=[],shots=[],coinsDrops=[],floaters=[];
+let orbitAngle=0,orbitHitTimers=new Map();
+const obstacleTileW=300,obstacleTileH=260; // 無限世界の障害物タイル
+const orbitDefaults={count:2,damage:8, speed:2.7, radiusX:43, radiusY:30};
+let orbitBalls={...orbitDefaults};
+const player={x:W/2,y:H/2,r:15,hp:100,maxHp:100,speed:205,damage:12,range:235,fireRate:.55,fireT:0,xp:0,nextXp:30,level:1,armor:0,regen:0};
+const skillDefs={
+ flame:{name:'炎爆',emoji:'🔥',cd:5.5,desc:'周囲の敵全体に大ダメージ。',unlock:1},
+ lightning:{name:'雷撃',emoji:'⚡',cd:4.5,desc:'近くの敵3体までに連鎖ダメージ。',unlock:1},
+ frost:{name:'氷結',emoji:'❄️',cd:7,desc:'周囲を凍らせ、敵をしばらく遅くする。',unlock:1},
+ ultimate:{name:'必殺技',emoji:'💥',cd:20,desc:'画面内の敵に超大ダメージ。Lv.5で解放。',unlock:5}
+};
+let cooldowns={flame:0,lightning:0,frost:0,ultimate:0};
+let learned={flame:false,lightning:false,frost:false,ultimate:false};
+let upgrades={power:0,swift:0,heart:0,armor:0,regen:0};
+// レベルアップで選べる一度きりのランダム能力。取得済み能力は二度と候補に出ず、重ねて強化できない。
+const abilityDefs=[
+ {id:'powerCore',name:'💥 火力コア',desc:'攻撃ダメージが一度だけ大幅アップ。',apply:()=>{player.damage*=1.35;}},
+ {id:'swiftBoots',name:'👟 風のブーツ',desc:'移動速度が一度だけアップ。',apply:()=>{player.speed*=1.22;}},
+ {id:'heartStone',name:'💖 命の石',desc:'最大HPが40増え、HPも回復。',apply:()=>{player.maxHp+=40;player.hp=Math.min(player.maxHp,player.hp+40);}},
+ {id:'ironSkin',name:'🛡️ 鉄の肌',desc:'受けるダメージを一度だけ軽減。',apply:()=>{player.armor=Math.min(.7,player.armor+.15);}},
+ {id:'longShot',name:'🎯 遠距離射撃',desc:'通常攻撃の射程が一度だけ伸びる。',apply:()=>{player.range+=75;}},
+ {id:'rapidFire',name:'⚡ 連射装置',desc:'通常攻撃の間隔が一度だけ短くなる。',apply:()=>{player.fireRate=Math.max(.2,player.fireRate*.78);}},
+ {id:'learnFlame',name:'🔥 技：炎爆',desc:'炎の技を習得。習得後は自動で発動する。',skill:'flame',apply:()=>{learned.flame=true;}},
+ {id:'learnLightning',name:'✨ 技：光雷撃',desc:'光る雷の技を習得。習得後は自動で発動する。',skill:'lightning',apply:()=>{learned.lightning=true;}},
+ {id:'learnFrost',name:'❄️ 技：氷結',desc:'新しい技を習得。以後、氷結が自動で発動する。',skill:'frost',apply:()=>{learned.frost=true;}},
+ {id:'learnUltimate',name:'💥 技：必殺技',desc:'Lv.5以上で選択可能。習得すると必殺技が自動で発動する。',skill:'ultimate',unlock:5,apply:()=>{learned.ultimate=true;}},
+ {id:'skillCore',name:'✨ 技の結晶',desc:'自動で発動する技の威力が一度だけアップ。',apply:()=>{player.skillPower=(player.skillPower||1)*1.4;}},
+ {id:'regenHeart',name:'🌿 再生の心',desc:'HPが少しずつ回復する能力を一度だけ獲得。',apply:()=>{player.regen+=1.5;}},
+ {id:'orbitCount',name:'🔮 回転球を1個追加',desc:'自分の周りを回る球が1個増える（最大8個）。',apply:()=>{orbitBalls.count=Math.min(8,orbitBalls.count+1);}},
+ {id:'orbitPower',name:'💫 回転球の威力',desc:'回転する球の接触ダメージが大きくなる。',apply:()=>{orbitBalls.damage+=6;}},
+ {id:'orbitSpeed',name:'🌀 回転速度アップ',desc:'周りを回る球がもっと速く回る。',apply:()=>{orbitBalls.speed+=1.1;}},
+ {id:'orbitRange',name:'⭕ 回転範囲アップ',desc:'球が回る範囲が広くなる。',apply:()=>{orbitBalls.radiusX+=14;orbitBalls.radiusY+=10;}},
+ {id:'heavyStrike',name:'🔨 重撃',desc:'通常攻撃のダメージがさらにアップ。',apply:()=>{player.damage*=1.22;}},
+ {id:'quickHands',name:'🖐️ 連撃の手',desc:'通常攻撃の間隔が短くなる。',apply:()=>{player.fireRate=Math.max(.16,player.fireRate*.86);}},
+ {id:'vitality',name:'❤️‍🔥 生命力',desc:'最大HPが25増え、HPも回復。',apply:()=>{player.maxHp+=25;player.hp=Math.min(player.maxHp,player.hp+25);}},
+ {id:'guardian',name:'🧿 守護の結界',desc:'受けるダメージをさらに軽減。',apply:()=>{player.armor=Math.min(.75,player.armor+.08);}},
+ {id:'swiftStep',name:'💨 疾風ステップ',desc:'移動速度がさらにアップ。',apply:()=>{player.speed*=1.12;}},
+ {id:'longReach',name:'🏹 射程拡張',desc:'通常攻撃の射程がさらに伸びる。',apply:()=>{player.range+=45;}},
+ {id:'regenBurst',name:'🌱 大回復',desc:'HPを最大HPの半分回復する。',apply:()=>{player.hp=Math.min(player.maxHp,player.hp+Math.ceil(player.maxHp*.5));}},
+ {id:'orbForce',name:'🔮 球の増幅',desc:'回転球の接触ダメージがさらにアップ。',apply:()=>{orbitBalls.damage+=10;}}
+];
+let acquiredAbilities=[];
+let skillProjectiles=[];
+let sdkReady=false;
+try{if(window.PokiSDK){PokiSDK.init().then(()=>{sdkReady=true;}).catch(()=>{});}}catch(e){}
+function sdkCall(name){try{if(window.PokiSDK&&typeof PokiSDK[name]==='function')PokiSDK[name]();}catch(e){}}
+function start(){reset();mode='play';$('overlay').style.display='none';if(peer)updateNetLabel();sdkCall('gameplayStart');}
+function reset(){
+ time=0;spawnT=0;bossSpawned=false;levelPending=0;killCount=0;enemies=[];shots=[];coinsDrops=[];floaters=[];effects=[];skillProjectiles=[];orbitAngle=0;orbitHitTimers=new Map();orbitBalls={...orbitDefaults};
+ Object.assign(player,{x:W/2,y:H/2,r:15,hp:100,maxHp:100,speed:205,damage:12,range:235,fireRate:.55,fireT:0,xp:0,nextXp:30,level:1,armor:0,regen:0});
+ cooldowns={flame:0,lightning:0,frost:0,ultimate:0};learned={flame:false,lightning:false,frost:false,ultimate:false};upgrades={power:0,swift:0,heart:0,armor:0,regen:0};acquiredAbilities=[];
+}
+function toast(s){$('toast').textContent=s;$('toast').style.display='block';toastT=2.1;}
+function getScore(){return killCount*10+player.level*100+Math.floor(time*2);}
+function readRanking(){try{return JSON.parse(localStorage.getItem('myRpgWorldRanking')||'[]').filter(x=>x&&Number.isFinite(x.score));}catch(e){return [];}}
+function saveRanking(){
+ const row={name:(localStorage.getItem('myRpgPlayerName')||'冒険者').slice(0,16),score:getScore(),level:player.level,kills:killCount,time:Math.floor(time),date:new Date().toLocaleDateString('ja-JP')};
+ const list=readRanking();list.push(row);list.sort((a,b)=>b.score-a.score);const top=list.slice(0,10);
+ try{localStorage.setItem('myRpgWorldRanking',JSON.stringify(top));}catch(e){}
+ // Firebase Realtime Database URLを設定している場合、端末をまたいでランキングを共有
+ syncOnlineRanking(row).catch(()=>{});return top;
+}
+function getOnlineDbUrl(){return (localStorage.getItem('myRpgOnlineRankingUrl')||'').trim().replace(/\/$/,'');}
+async function syncOnlineRanking(newRow){
+ const base=getOnlineDbUrl();if(!base)return;
+ const res=await fetch(base+'/rankings.json');if(!res.ok)throw new Error('オンラインランキングを読み込めません');
+ const data=await res.json();let list=Array.isArray(data)?data:Object.values(data||{});
+ if(newRow)list.push(newRow);
+ list=list.filter(x=>x&&Number.isFinite(Number(x.score))).map(x=>({...x,score:Number(x.score),level:Number(x.level)||1,kills:Number(x.kills)||0,time:Number(x.time)||0}));
+ list.sort((a,b)=>b.score-a.score);list=list.slice(0,10);
+ const put=await fetch(base+'/rankings.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(list)});
+ if(!put.ok)throw new Error('オンラインランキングを保存できません');
+ try{localStorage.setItem('myRpgWorldRanking',JSON.stringify(list));}catch(e){}
+ return list;
+}
+async function loadOnlineRanking(){
+ const base=getOnlineDbUrl();if(!base)return null;
+ const res=await fetch(base+'/rankings.json');if(!res.ok)throw new Error('オンラインランキングを読み込めません');
+ const data=await res.json();const list=(Array.isArray(data)?data:Object.values(data||{})).filter(x=>x&&Number.isFinite(Number(x.score))).map(x=>({...x,score:Number(x.score),level:Number(x.level)||1,kills:Number(x.kills)||0,time:Number(x.time)||0})).sort((a,b)=>b.score-a.score).slice(0,10);
+ try{localStorage.setItem('myRpgWorldRanking',JSON.stringify(list));}catch(e){}return list;
+}
+function rankingRows(list){if(!list.length)return '<p>まだ記録がないよ。冒険して最初の記録を作ろう！</p>';return '<div style="text-align:left;max-width:500px;margin:auto">'+list.map((r,i)=>`<div style="display:flex;gap:8px;justify-content:space-between;padding:8px;border-bottom:1px solid #46577e"><b>${i+1}. ${i===0?'👑 ':''}${escapeRankName(r.name||'冒険者')} ${r.score.toLocaleString()}点</b><span>Lv.${r.level} ・ ${r.kills}体 ・ ${r.time}秒</span></div>`).join('')+'</div>';}
+function escapeRankName(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function rankingMarkup(){
+ const list=readRanking();const base=getOnlineDbUrl();
+ return '<div style="margin:0 auto 12px;max-width:500px;text-align:left"><label for="playerName">ランキングに表示する名前</label><input id="playerName" class="lobbyinput" maxlength="16" placeholder="冒険者" value="'+escapeRankName(localStorage.getItem('myRpgPlayerName')||'')+'"><label for="rankingDbUrl" style="display:block;margin-top:8px">オンラインランキング接続URL（Firebase）</label><input id="rankingDbUrl" class="lobbyinput" placeholder="https://あなたのDB名-default-rtdb.firebaseio.com" value="'+escapeRankName(base)+'"><button id="saveRankConfigBtn" style="width:100%;margin-top:8px">名前・オンライン設定を保存</button><button id="refreshOnlineRankingBtn" style="width:100%;margin-top:8px">🌐 オンラインランキングを読み込む</button><p id="rankingStatus" style="font-size:12px">'+(base?'オンラインランキングURL設定済み':'現在はこの端末内のランキング。オンライン共有にはFirebase URLの設定が必要です。')+'</p></div><div id="rankingRows">'+rankingRows(list)+'</div><p style="font-size:12px">オンライン共有を使うにはFirebase Realtime DatabaseのURLが必要です。URLを設定しない場合は端末内ランキングになります。</p>';
+}
+function openPanel(type){
+ mode=type;sdkCall('gameplayStop');
+ let c=$('panelcontent'),title='',body='',buttons='';
+ if(type==='title'){
+  title='';body='<div class="title-hero"><div class="title-mark">🌌 ⚔️ 🔮</div><div class="title-name">MY RPG WORLD</div><div class="title-sub">ENDLESS ADVENTURE</div><p>無限の世界を駆け抜け、敵とボスを倒して最強を目指そう！</p><div class="title-tags"><span>🌍 無限フィールド</span><span>🪨 障害物</span><span>✨ 能力3択</span><span>🏆 ランキング</span></div></div><p>移動：WASD／矢印キー／左スティック<br>攻撃・習得した技は自動で発動します。</p>';
+  buttons='<button id="startBtn">▶ ひとりで遊ぶ</button><button id="multiBtn">🌐 オンライン最大4人</button><button id="rankingBtn">🏆 ランキングボード</button>';
+  $('overlay').classList.add('title-overlay');
+ }else if(type==='ranking'){ $('overlay').classList.remove('title-overlay');title='🏆 オンラインランキングボード';body=rankingMarkup();buttons='<button id="rankingBackBtn">戻る</button><button id="rankingClearBtn">この端末の記録を消す</button>'; 
+
+ }else if(type==='lobby'){ $('overlay').classList.remove('title-overlay');
+  title='🌐 オンライン協力プレイ';
+  body='<p>最大4人で同じルームに参加できます。ホストがルームを作成し、友だちにルームコードを伝えてね。</p><button id="hostBtn" style="width:100%;margin-bottom:8px">ルームを作る</button><label for="roomCode">ルームコード</label><input id="roomCode" class="lobbyinput" maxlength="6" placeholder="例：A7K2Q9"><button id="joinBtn" style="width:100%">コードで参加</button><p id="netmsg">接続方式：Peer-to-peer（PeerJS）</p>';
+  buttons='<button id="onlineStartBtn">▶ ゲーム開始</button><button id="lobbyBackBtn">戻る</button>';
+ }else if(type==='levelup'){ $('overlay').classList.remove('title-overlay');
+  title='✨ レベルアップ！';body='<p>ランダムな能力が3つ出ます。1つ選べます。取得した能力は一度きりで、同じ能力を強化することはできません。</p>';
+  const available=abilityDefs.filter(a=>!acquiredAbilities.includes(a.id)&&(!a.skill||(!learned[a.skill]&&player.level>=(a.unlock||1))));
+  const shuffled=available.slice().sort(()=>Math.random()-.5);
+  const opts=shuffled.slice(0,Math.min(3,shuffled.length));
+  if(opts.length){body+='<div id="choices">'+opts.map(a=>`<button class="choice" data-ability="${a.id}"><strong>${a.name}</strong><small>${a.desc}</small></button>`).join('')+'</div>';}
+  else{body+='<p>すべての特別能力を獲得済み！今回はHPを回復します。</p>';}
+ }else if(type==='pause'){ $('overlay').classList.remove('title-overlay');
+  title='⏸ 一時停止';body='<p>冒険は一時停止中です。</p>';
+  buttons='<button id="resumeBtn">▶ 続ける</button><button id="restartBtn">↻ 最初から</button>';
+ }else if(type==='gameover'){ $('overlay').classList.remove('title-overlay');
+  title='💫 ゲームオーバー';const ranking=saveRanking();body=`<p>スコア：<b style="color:#ffd76a;font-size:22px">${getScore().toLocaleString()}点</b><br>到達レベル：${player.level}<br>倒した敵：${killCount}体<br>生存時間：${Math.floor(time)}秒</p><h2>🏆 ランキング TOP 5</h2>`+ranking.slice(0,5).map((r,i)=>`<p>${i+1}位　${r.score.toLocaleString()}点　（Lv.${r.level}・${r.kills}体）</p>`).join('');
+  buttons='<button id="restartBtn">↻ もう一度遊ぶ</button><button id="rankingBtn">🏆 全ランキング</button>';
+ }
+ c.innerHTML=`<h1>${title}</h1>${body}<div class="panelrow">${buttons}</div>`;
+ $('overlay').style.display='flex';
+ const bind=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};
+ bind('startBtn',start);bind('multiBtn',()=>openPanel('lobby'));bind('rankingBtn',()=>openPanel('ranking'));bind('rankingBackBtn',()=>openPanel('title'));bind('rankingClearBtn',()=>{try{localStorage.removeItem('myRpgWorldRanking')}catch(e){}openPanel('ranking')});bind('lobbyBackBtn',()=>openPanel('title'));bind('onlineStartBtn',start);
+ bind('saveRankConfigBtn',()=>{const name=( $('playerName')?.value||'冒険者').trim().slice(0,16)||'冒険者';const url=( $('rankingDbUrl')?.value||'').trim().replace(/\/$/,'');try{localStorage.setItem('myRpgPlayerName',name);if(url)localStorage.setItem('myRpgOnlineRankingUrl',url);else localStorage.removeItem('myRpgOnlineRankingUrl');}catch(e){}const status=$('rankingStatus');if(status)status.textContent=url?'設定を保存しました。オンライン読み込みボタンで接続を確認してね。':'名前を保存しました。URL未設定のため端末内ランキングです。';});
+ bind('refreshOnlineRankingBtn',async()=>{const status=$('rankingStatus');if(status)status.textContent='オンラインランキングを読み込み中…';try{const list=await loadOnlineRanking();if(!list){if(status)status.textContent='先にFirebase Realtime DatabaseのURLを入力して設定を保存してね。';return;}const rows=$('rankingRows');if(rows)rows.innerHTML=rankingRows(list);if(status)status.textContent='オンラインランキングを読み込みました！';}catch(e){if(status)status.textContent='接続できません。Firebase URLとデータベースの読み書きルールを確認してね。';}});
+ bind('hostBtn',hostRoom);bind('joinBtn',()=>joinRoom(($('roomCode')?.value||'').trim().toUpperCase()));
+ bind('resumeBtn',()=>{mode='play';$('overlay').style.display='none';sdkCall('gameplayStart');});
+ bind('restartBtn',start);
+ c.querySelectorAll('[data-ability]').forEach(b=>b.onclick=()=>{applyAbility(b.dataset.ability);if(levelPending>1){levelPending--;openPanel('levelup')}else{levelPending=0;mode='play';$('overlay').style.display='none';sdkCall('gameplayStart');}});
+ if(type==='levelup'&&!c.querySelector('[data-ability]')){const fallback=c.querySelector('.panelrow');if(fallback){const b=document.createElement('button');b.textContent='❤️ HPを回復して続ける';b.onclick=()=>{player.hp=Math.min(player.maxHp,player.hp+30);if(levelPending>1){levelPending--;openPanel('levelup')}else{levelPending=0;mode='play';$('overlay').style.display='none';sdkCall('gameplayStart');}};fallback.appendChild(b);}}
+}
+function applyAbility(id){
+ const a=abilityDefs.find(x=>x.id===id);if(!a||acquiredAbilities.includes(id))return;
+ acquiredAbilities.push(id);a.apply();toast(a.name+' を獲得！');updateHUD();
+}
+function applyUpgrade(k){
+ upgrades[k]=(upgrades[k]||0)+1;
+ if(k==='power')player.damage*=1.2;
+ if(k==='swift')player.speed*=1.12;
+ if(k==='heart'){player.maxHp+=25;player.hp=Math.min(player.maxHp,player.hp+25);}
+ if(k==='armor')player.armor=Math.min(.65,player.armor+.08);
+ if(k==='regen')player.regen+=1.1;
+ toast('強化した！');
+}
+function castSkill(k){
+ // 未習得の技は使えない。三択で習得した技だけ自動発動する。
+ if(!learned[k]){toast('まだ使えない技です！');return;}
+ if(cooldowns[k]>0){toast(`${skillDefs[k].name} あと${cooldowns[k].toFixed(1)}秒`);return;}
+ if(k==='ultimate'&&player.level<5){toast('必殺技はLv.5で解放！');return;}
+ const power=(player.skillPower||1)*(1+(upgrades.power||0)*.2);
+ cooldowns[k]=skillDefs[k].cd;
+ if(k==='flame'){
+  effects.push({type:'ring',x:player.x,y:player.y,r:20,max:185,t:.42,color:'#ff6a37'});
+  enemies.slice().forEach(e=>{if(dist(e,player)<185+e.r)hurtEnemy(e,player.damage*3.1*power,'🔥');});
+ }else if(k==='lightning'){
+  let list=enemies.slice().sort((a,b)=>dist(a,player)-dist(b,player)).filter(e=>dist(e,player)<390).slice(0,3);
+  list.forEach((e,i)=>{hurtEnemy(e,player.damage*2.6*power,'⚡');effects.push({type:'bolt',x1:player.x,y1:player.y,x2:e.x,y2:e.y,t:.18,color:'#9dfbff'});});
+  if(!list.length)toast('近くに敵がいない！');
+ }else if(k==='frost'){
+  effects.push({type:'ring',x:player.x,y:player.y,r:10,max:220,t:.55,color:'#7ce7ff'});
+  enemies.slice().forEach(e=>{if(dist(e,player)<220+e.r){hurtEnemy(e,player.damage*1.7*power,'❄️');e.slow=Math.max(e.slow||0,3.2);}});
+ }else if(k==='ultimate'){
+  effects.push({type:'ring',x:player.x,y:player.y,r:15,max:460,t:.9,color:'#fff16d'});
+  enemies.slice().forEach(e=>hurtEnemy(e,player.damage*9*power,'💥'));
+  toast('必殺技！！');
+ }
+ updateHUD();
+}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function nearestEnemy(){return enemies.filter(e=>!e.dead).sort((a,b)=>dist(a,player)-dist(b,player))[0]||null}
+function spawnEnemy(boss=false){
+ const side=Math.floor(Math.random()*4);let x=side===0?player.x-W/2-35:side===1?player.x+W/2+35:player.x+(Math.random()-.5)*W,y=side===2?player.y-H/2-35:side===3?player.y+H/2+35:player.y+(Math.random()-.5)*H;
+ const scale=1+time/110;
+ const e={x,y,r:boss?34:Math.random()<.18?19:14,hp:boss?1000:25+time*.7,maxHp:boss?1000:25+time*.7,speed:boss?45:45+Math.random()*28+time*.12,damage:boss?22:8+Math.min(10,time*.12),boss,dead:false,slow:0,hitFlash:0,kind:boss?'boss':Math.random()<.2?'brute':'normal',lastHit:0};
+ e.hp*=scale;e.maxHp=e.hp;enemies.push(e);if(boss){bossSpawned=true;toast('👑 ボスが現れた！');$('bossbar').style.display='block';}
+}
+function hurtEnemy(e,dmg,label=''){
+ if(!e||e.dead)return;e.hp-=dmg;e.hitFlash=.12;
+ if(label)floaters.push({x:e.x,y:e.y-e.r,text:label+' '+Math.round(dmg),t:.65});
+ if(e.hp<=0)killEnemy(e);
+}
+function killEnemy(e){
+ if(e.dead)return;e.dead=true;killCount++;
+ const xp=e.boss?80:e.kind==='brute'?9:6;
+ gainXP(xp);
+ effects.push({type:'burst',x:e.x,y:e.y,r:e.r,t:.25,color:e.boss?'#e68cff':'#ff9a8a'});
+ if(e.boss){$('bossbar').style.display='none';toast('ボス撃破！ EXP +80');}
+}
+function gainXP(x){
+ // 敵を倒した瞬間にEXPを獲得。必要EXPに達した時だけレベルアップ。
+ player.xp += x;
+ while(player.xp >= player.nextXp){
+  player.xp -= player.nextXp;
+  player.level++;
+  // 球は自動では増えず、レベルアップ時の3択で「回転球を1個追加」を選ぶと増える。
+  player.nextXp = Math.floor(player.nextXp * 1.28 + 10);
+  player.hp = Math.min(player.maxHp, player.hp + 20);
+  levelPending++;
+ }
+}
+function autoCastSkills(){
+ // 技は自動発動。使用可能になった技をクールダウン終了時に自動で使う。
+ for(const k of ['flame','lightning','frost','ultimate']){
+  if(learned[k] && cooldowns[k] <= 0 && (k!=='ultimate' || player.level>=5)){
+   const target=nearestEnemy();
+   if(target && dist(target,player)<430){
+    castSkill(k);
+   }
+  }
+ }
+}
+function attack(){
+ if(player.fireT>0)return;let e=nearestEnemy();if(!e||dist(e,player)>player.range)return;
+ player.fireT=player.fireRate;
+ shots.push({x:player.x,y:player.y,vx:(e.x-player.x)/dist(e,player)*440,vy:(e.y-player.y)/dist(e,player)*440,r:5,dmg:player.damage,t:1.1});
+}
+function hash2(ix,iy){let n=(Math.imul(ix|0,374761393)+Math.imul(iy|0,668265263))|0;n=Math.imul(n^(n>>>13),1274126177);return (n^(n>>>16))>>>0;}
+function obstacleForTile(tx,ty){
+ const h=hash2(tx,ty);if(h%5===0)return null;
+ const x=tx*obstacleTileW+38+((h>>>4)%(obstacleTileW-76)),y=ty*obstacleTileH+34+((h>>>13)%(obstacleTileH-68));
+ if(Math.hypot(x-W/2,y-H/2)<180)return null;
+ const type=(h>>>8)%3;return {x,y,r:type===0?23:type===1?19:25,type};
+}
+function nearbyObstacles(x,y,margin=100){
+ const out=[],x1=Math.floor((x-margin)/obstacleTileW),x2=Math.floor((x+margin)/obstacleTileW),y1=Math.floor((y-margin)/obstacleTileH),y2=Math.floor((y+margin)/obstacleTileH);
+ for(let tx=x1;tx<=x2;tx++)for(let ty=y1;ty<=y2;ty++){const o=obstacleForTile(tx,ty);if(o)out.push(o);}return out;
+}
+function blockedAt(x,y,r){return nearbyObstacles(x,y,r+30).some(o=>Math.hypot(x-o.x,y-o.y)<r+o.r);}
+function update(dt){
+ if(mode!=='play')return;
+ time+=dt;spawnT-=dt;networkTick(dt);
+ if(spawnT<=0){spawnEnemy();if(time>45&&Math.random()<.35)spawnEnemy();spawnT=Math.max(.22,.42-time*.0015);}
+ if(time>30&&!bossSpawned)spawnEnemy(true);
+ player.fireT-=dt;
+ if(player.regen>0)player.hp=Math.min(player.maxHp,player.hp+player.regen*dt);
+ for(const k in cooldowns)cooldowns[k]=Math.max(0,cooldowns[k]-dt);
+ let dx=0,dy=0;
+ if(keys.ArrowLeft||keys.a||keys.A)dx--;if(keys.ArrowRight||keys.d||keys.D)dx++;
+ if(keys.ArrowUp||keys.w||keys.W)dy--;if(keys.ArrowDown||keys.s||keys.S)dy++;
+ dx+=joy.x;dy+=joy.y;let mag=Math.hypot(dx,dy);if(mag>1){dx/=mag;dy/=mag;}
+ const nextX=player.x+dx*player.speed*dt,nextY=player.y+dy*player.speed*dt;
+ if(!blockedAt(nextX,player.y,player.r))player.x=nextX;
+ if(!blockedAt(player.x,nextY,player.r))player.y=nextY;
+ // 最初の試作版で使っていた「複数の球が自分の周りを回る」仕組み。
+ // 球に触れた敵へ自動でダメージ。球数はレベルアップの三択で「回転球を1個追加」を選んだ時だけ増える。
+ orbitAngle += dt*orbitBalls.speed;
+ for(let i=0;i<orbitBalls.count;i++){
+  const a=orbitAngle+i*Math.PI*2/orbitBalls.count;
+  const orbX=player.x+Math.cos(a)*orbitBalls.radiusX, orbY=player.y+Math.sin(a)*orbitBalls.radiusY;
+  for(const e of enemies){if(e.dead)continue;const key=i+':'+(e.id??enemies.indexOf(e));const lastHit=orbitHitTimers.get(key)||0;if(time-lastHit>=0.55&&Math.hypot(orbX-e.x,orbY-e.y)<e.r+10){orbitHitTimers.set(key,time);hurtEnemy(e,orbitBalls.damage+(player.level-1)*1.5,'🔮');effects.push({type:'burst',x:e.x,y:e.y,r:12,t:.18,color:'#c58bff'});}}
+ }
+ attack();
+ autoCastSkills();
+ shots=shots.filter(s=>{
+  s.x+=s.vx*dt;s.y+=s.vy*dt;s.t-=dt;
+  for(const e of enemies){if(!e.dead&&Math.hypot(s.x-e.x,s.y-e.y)<s.r+e.r){hurtEnemy(e,s.dmg);return false;}}
+  return s.t>0;
+ });
+ enemies.forEach(e=>{
+  if(e.dead)return;let d=dist(e,player),dx=player.x-e.x,dy=player.y-e.y;
+  if(d>0){e.x+=dx/d*e.speed*(e.slow>0?.35:1)*dt;e.y+=dy/d*e.speed*(e.slow>0?.35:1)*dt;}
+  e.slow=Math.max(0,(e.slow||0)-dt);e.hitFlash=Math.max(0,e.hitFlash-dt);
+  if(d<e.r+player.r){player.hp-=Math.max(1,e.damage*(1-player.armor))*dt*1.4;}
+ });
+ enemies=enemies.filter(e=>!e.dead);
+ coinsDrops=[];
+
+ effects.forEach(e=>e.t-=dt);effects=effects.filter(e=>e.t>0);
+ floaters.forEach(f=>{f.y-=25*dt;f.t-=dt;});floaters=floaters.filter(f=>f.t>0);
+ if(levelPending>0){openPanel('levelup');return;}
+ if(player.hp<=0){player.hp=0;mode='gameover';openPanel('gameover');return;}
+ if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').style.display='none';}
+ updateHUD();
+}
+function updateHUD(){
+ $('lv').textContent=player.level;$('kills').textContent=killCount;$('hp').textContent=Math.ceil(player.hp);$('maxhp').textContent=player.maxHp;
+ $('hpfill').style.width=Math.max(0,player.hp/player.maxHp*100)+'%';$('xp').textContent=Math.floor(player.xp);$('nextxp').textContent=player.nextXp;$('xpfill').style.width=player.xp/player.nextXp*100+'%';
+ document.querySelectorAll('.skill').forEach(b=>{const k=b.dataset.skill,cd=cooldowns[k]||0,el=b.querySelector('.cool');el.style.display=cd>0||!learned[k]?'flex':'none';el.textContent=!learned[k]?'🔒':cd>0?cd.toFixed(1):'';b.style.opacity=learned[k]?'1':'.65';});
+ if(bossSpawned){const b=enemies.find(e=>e.boss&&!e.dead);if(b){$('bossbar').style.display='block';$('bossfill').style.width=Math.max(0,b.hp/b.maxHp*100)+'%';}else{$('bossbar').style.display='none';$('bossfill').style.width='0%';}}else{$('bossbar').style.display='none';}
+}
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ ctx.fillStyle='#111a2c';ctx.fillRect(0,0,W,H);
+ // カメラをプレイヤーに追従させる。座標に上限がない無限フィールド。
+ const camX=player.x-W/2,camY=player.y-H/2;
+ ctx.save();ctx.translate(-camX,-camY);
+ ctx.fillStyle='#111a2c';ctx.fillRect(camX,camY,W,H);
+ ctx.strokeStyle='#263550';ctx.lineWidth=1;
+ const startX=Math.floor(camX/40)*40,startY=Math.floor(camY/40)*40;
+ for(let x=startX;x<camX+W+40;x+=40){ctx.beginPath();ctx.moveTo(x,camY);ctx.lineTo(x,camY+H);ctx.stroke();}
+ for(let y=startY;y<camY+H+40;y+=40){ctx.beginPath();ctx.moveTo(camX,y);ctx.lineTo(camX+W,y);ctx.stroke();}
+ // 無限に続くよう、カメラ付近のタイルごとに小さな地形模様を描く。
+ ctx.fillStyle='#17253b';for(let tx=Math.floor(camX/320)-1;tx<=Math.floor((camX+W)/320)+1;tx++)for(let ty=Math.floor(camY/270)-1;ty<=Math.floor((camY+H)/270)+1;ty++){let seed=Math.abs((tx*73856093)^(ty*19349663));let x=tx*320+((seed%230)+45),y=ty*270+(((seed>>>5)%180)+35);ctx.beginPath();ctx.ellipse(x,y,22,12,.3,0,Math.PI*2);ctx.fill();}
+ // 無限フィールドの障害物（岩・木・魔法結晶）。当たり判定があり、移動を妨げる。
+ nearbyObstacles(camX+W/2,camY+H/2,Math.max(W,H)).forEach(o=>{
+  if(o.x<camX-50||o.x>camX+W+50||o.y<camY-50||o.y>camY+H+50)return;
+  if(o.type===0){ctx.fillStyle='#111827';ctx.beginPath();ctx.ellipse(o.x+2,o.y+o.r*.72,o.r*1.15,o.r*.52,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#58677e';ctx.beginPath();ctx.moveTo(o.x-o.r,o.y+o.r*.35);ctx.lineTo(o.x-o.r*.65,o.y-o.r*.55);ctx.lineTo(o.x+o.r*.05,o.y-o.r);ctx.lineTo(o.x+o.r,o.y-o.r*.15);ctx.lineTo(o.x+o.r*.75,o.y+o.r*.6);ctx.closePath();ctx.fill();ctx.strokeStyle='#9cacc6';ctx.lineWidth=2;ctx.stroke();}
+  else if(o.type===1){ctx.fillStyle='#111827';ctx.beginPath();ctx.ellipse(o.x,o.y+o.r*.7,o.r*1.05,o.r*.48,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#34775d';ctx.beginPath();ctx.arc(o.x,o.y-o.r*.28,o.r*.82,0,Math.PI*2);ctx.fill();ctx.fillStyle='#54b884';ctx.beginPath();ctx.arc(o.x-o.r*.22,o.y-o.r*.4,o.r*.4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#72583d';ctx.fillRect(o.x-4,o.y+o.r*.15,8,o.r*.72);}
+  else{ctx.fillStyle='#15142d';ctx.beginPath();ctx.ellipse(o.x,o.y+o.r*.72,o.r*1.1,o.r*.5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7c54bd';ctx.beginPath();ctx.moveTo(o.x,o.y-o.r*1.2);ctx.lineTo(o.x+o.r*.8,o.y+o.r*.5);ctx.lineTo(o.x-o.r*.75,o.y+o.r*.5);ctx.closePath();ctx.fill();ctx.strokeStyle='#d9b8ff';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#c6f6ff';ctx.beginPath();ctx.moveTo(o.x,o.y-o.r*.7);ctx.lineTo(o.x+o.r*.24,o.y+o.r*.28);ctx.lineTo(o.x-o.r*.22,o.y+o.r*.28);ctx.closePath();ctx.fill();}
+ });
+ shots.forEach(s=>{ctx.fillStyle='#fff1a3';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();});
+ enemies.forEach(e=>{
+  if(e.dead)return;
+  ctx.fillStyle=e.hitFlash>0?'#fff':e.boss?'#d96cff':e.kind==='brute'?'#e58d5d':'#e45d72';
+  ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#141827';ctx.beginPath();ctx.arc(e.x-4,e.y-2,2,0,Math.PI*2);ctx.arc(e.x+4,e.y-2,2,0,Math.PI*2);ctx.fill();
+  if(e.boss||e.kind==='brute'){ctx.fillStyle='#090d18';ctx.fillRect(e.x-e.r,e.y-e.r-9,e.r*2,4);ctx.fillStyle=e.boss?'#e7a1ff':'#ffc078';ctx.fillRect(e.x-e.r,e.y-e.r-9,e.r*2*Math.max(0,e.hp/e.maxHp),4);}
+  if(e.boss){ctx.fillStyle='#fff';ctx.font='18px sans-serif';ctx.fillText('👑',e.x-10,e.y-e.r-13);}
+ });
+ // remote players
+ Object.entries(remotePlayers).forEach(([id,rp],i)=>{
+  ctx.fillStyle='#ffcf70';ctx.beginPath();ctx.arc(rp.x,rp.y,14,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff1bf';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('P'+(i+2)+' Lv.'+rp.level,rp.x,rp.y-22);ctx.textAlign='left';
+ });
+ // player shadow and body
+ ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(player.x,player.y+9,player.r*1.15,player.r*.65,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#68d9ff';ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d8f7ff';ctx.lineWidth=3;ctx.stroke();
+ ctx.fillStyle='#102037';ctx.beginPath();ctx.arc(player.x-4,player.y-2,2,0,Math.PI*2);ctx.arc(player.x+4,player.y-2,2,0,Math.PI*2);ctx.fill();
+ // 自分の周りをくるくる回る複数の球（最初から2個）。
+ ctx.globalAlpha=.3;ctx.strokeStyle='#c58bff';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(player.x,player.y,orbitBalls.radiusX,orbitBalls.radiusY,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+ for(let i=0;i<orbitBalls.count;i++){
+  const a=orbitAngle+i*Math.PI*2/orbitBalls.count;
+  const orbX=player.x+Math.cos(a)*orbitBalls.radiusX, orbY=player.y+Math.sin(a)*orbitBalls.radiusY;
+  const size=8+Math.min(4,orbitBalls.damage*.12);
+  const orbGlow=ctx.createRadialGradient(orbX,orbY,1,orbX,orbY,size*1.8);orbGlow.addColorStop(0,'#fff');orbGlow.addColorStop(.35,'#e2b6ff');orbGlow.addColorStop(1,'#9b4dff00');ctx.fillStyle=orbGlow;ctx.beginPath();ctx.arc(orbX,orbY,size*1.8,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#b56aff';ctx.beginPath();ctx.arc(orbX,orbY,size*.75,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#f5e7ff';ctx.lineWidth=2;ctx.stroke();
+ }
+ effects.forEach(e=>{
+  if(e.type==='ring'){ctx.globalAlpha=Math.max(0,e.t/.9);ctx.strokeStyle=e.color;ctx.lineWidth=5;ctx.beginPath();ctx.arc(e.x,e.y,e.max*(1-e.t/(e.max===460?.9:e.max===220?.55:e.max===185?.42:.25)),0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+  if(e.type==='burst'){ctx.globalAlpha=Math.max(0,e.t/.25);ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(e.x,e.y,e.r*(1-e.t/.25),0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+  if(e.type==='bolt'){ctx.globalAlpha=Math.max(0,e.t/.18);ctx.strokeStyle=e.color;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(e.x1,e.y1);for(let i=1;i<6;i++){let t=i/6;ctx.lineTo(e.x1+(e.x2-e.x1)*t+(Math.random()-.5)*18,e.y1+(e.y2-e.y1)*t+(Math.random()-.5)*18);}ctx.lineTo(e.x2,e.y2);ctx.stroke();ctx.globalAlpha=1;}
+ });
+ floaters.forEach(f=>{ctx.globalAlpha=Math.min(1,f.t*2);ctx.fillStyle='#fff';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.fillText(f.text,f.x,f.y);ctx.textAlign='left';ctx.globalAlpha=1;});
+ ctx.restore();
+ // vignette is fixed to the screen, not the world.
+ const gr=ctx.createRadialGradient(W/2,H/2,150,W/2,H/2,600);gr.addColorStop(0,'#0000');gr.addColorStop(1,'#03071188');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+}
+function loop(ts){let dt=Math.min(.035,(ts-last)/1000||0);last=ts;update(dt);draw();requestAnimationFrame(loop);}
+document.addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();keys[e.key]=true;keys[k]=true;
+ if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
+ if(k==='escape'||k==='p'){if(mode==='play')openPanel('pause');else if(mode==='pause'){$('overlay').style.display='none';mode='play';sdkCall('gameplayStart');}}
+ if(k==='b'&&mode==='play')openPanel('shop');
+});
+document.addEventListener('keyup',e=>{delete keys[e.key];delete keys[e.key.toLowerCase()];});
+$('pauseBtn').onclick=()=>{if(mode==='play')openPanel('pause');};
+$('fullscreenBtn').onclick=async()=>{try{if(!document.fullscreenElement){await $('game').requestFullscreen();}else{await document.exitFullscreen();}}catch(e){toast('このブラウザでは全画面表示に対応していない場合があります');}};
+document.addEventListener('fullscreenchange',()=>{$('fullscreenBtn').textContent=document.fullscreenElement?'⛶ 戻す':'⛶ 全画面';});
+let stick=$('stick'),nub=$('nub'),pointer=null;
+stick.addEventListener('pointerdown',e=>{pointer=e.pointerId;stick.setPointerCapture(pointer);moveStick(e);});
+stick.addEventListener('pointermove',e=>{if(pointer===e.pointerId)moveStick(e);});
+function moveStick(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let x=(e.clientX-cx)/(r.width*.34),y=(e.clientY-cy)/(r.height*.34),m=Math.hypot(x,y);if(m>1){x/=m;y/=m;}joy={x,y};nub.style.left=(29+x*22)+'px';nub.style.top=(29+y*22)+'px';}
+function releaseStick(e){if(pointer===e.pointerId){pointer=null;joy={x:0,y:0};nub.style.left='29px';nub.style.top='29px';}}
+stick.addEventListener('pointerup',releaseStick);stick.addEventListener('pointercancel',releaseStick);
+window.addEventListener('blur',()=>{keys={};joy={x:0,y:0};});
+
+// Online room: up to four peers via PeerJS. Positions and status are synchronized.
+let peer=null, roomHost=false, roomId='', connections=[], remotePlayers={}, netTick=0, netStatusTimer=0;
+function setNetStatus(msg,show=true){const el=$('netstatus');el.textContent=msg;el.style.display=show?'block':'none';}
+function playerCount(){return 1+connections.filter(c=>c.open).length;}
+function updateNetLabel(){setNetStatus(`🌐 オンライン ${playerCount()}/4人${roomId?' ・ ROOM '+roomId:''}`,true);}
+function setupConnection(conn){
+ if(connections.length>=3){try{conn.close();}catch(e){}return;}
+ connections.push(conn);
+ conn.on('open',()=>{if(connections.filter(c=>c.open).length>3){conn.close();return;}remotePlayers[conn.peer]={x:W/2,y:H/2,level:1};conn.send({type:'hello',room:roomId,host:roomHost});updateNetLabel();toast('プレイヤーが参加した！');});
+ conn.on('data',msg=>{
+  if(!msg||typeof msg!=='object')return;
+  if(msg.type==='state'&&msg.player){remotePlayers[conn.peer]={x:msg.player.x,y:msg.player.y,level:msg.player.level||1};}
+  if(msg.type==='hello'){conn.send({type:'state',player:{x:player.x,y:player.y,level:player.level}});}
+  if(msg.type==='leave'){delete remotePlayers[conn.peer];}
+ });
+ conn.on('close',()=>{connections=connections.filter(c=>c!==conn);delete remotePlayers[conn.peer];updateNetLabel();});
+ conn.on('error',()=>{delete remotePlayers[conn.peer];});
+}
+function hostRoom(){
+ if(!window.Peer){$('netmsg').textContent='通信ライブラリを読み込めませんでした。ネット接続を確認してね。';return;}
+ disconnectNet();roomId=Math.random().toString(36).slice(2,8).toUpperCase();roomHost=true;
+ peer=new Peer('myrpg-'+roomId,{debug:0});
+ $('netmsg').textContent='ルームを作成中…';
+ peer.on('open',()=>{$('netmsg').innerHTML=`ルーム作成完了！友だちにこのコードを送ってね：<b style="color:#ffd76a;font-size:22px">${roomId}</b><br>参加者が接続したら「開始」を押してね。`;});
+ peer.on('connection',conn=>{if(connections.filter(c=>c.open).length>=3){conn.on('open',()=>conn.close());return;}setupConnection(conn);});
+ peer.on('error',e=>{$('netmsg').textContent='ルーム作成に失敗しました。別のルームを作ってね。';});
+}
+function joinRoom(code){
+ if(!code||code.length<4){$('netmsg').textContent='ルームコードを入力してね。';return;}
+ if(!window.Peer){$('netmsg').textContent='通信ライブラリを読み込めませんでした。';return;}
+ disconnectNet();roomId=code;roomHost=false;peer=new Peer({debug:0});
+ $('netmsg').textContent='ルームに接続中…';
+ peer.on('open',()=>{const conn=peer.connect('myrpg-'+roomId,{reliable:true});setupConnection(conn);conn.on('open',()=>{$('netmsg').textContent='接続成功！ ゲームを開始します。';setTimeout(()=>{if(mode==='lobby')start();},700);});});
+ peer.on('error',()=>{$('netmsg').textContent='接続できません。コードを確認して、ホストがルームを開いているか確認してね。';});
+}
+function disconnectNet(){
+ try{connections.forEach(c=>c.close());if(peer)peer.destroy();}catch(e){}
+ connections=[];remotePlayers={};peer=null;roomId='';roomHost=false;
+}
+function networkTick(dt){
+ if(!peer||!peer.open)return;
+ netTick+=dt;if(netTick<.08)return;netTick=0;
+ const msg={type:'state',player:{x:player.x,y:player.y,level:player.level}};
+ connections.forEach(c=>{if(c.open)try{c.send(msg);}catch(e){}});
+}
+
+function init(){openPanel('title');updateHUD();requestAnimationFrame(loop);try{if(window.PokiSDK)sdkCall('gameLoadingFinished');}catch(e){}}
+init();
+})();
+</script>
+</body></html>
